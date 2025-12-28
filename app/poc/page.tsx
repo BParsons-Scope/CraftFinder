@@ -21,21 +21,39 @@ export default function POCPage() {
       setQuestions(data.questions ?? []);
     })();
   }, []);
+async function onSubmit() {
+  setLoading(true);
+  setResult(null);
 
-  async function onSubmit() {
-    setLoading(true);
-    setResult(null);
+  try {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10000); // 10s
 
     const res = await fetch("/api/recommend", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ answers }),
+      signal: controller.signal,
     });
+
+    window.clearTimeout(timeout);
+
+    // If server errors, try to show something meaningful
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`POST /api/recommend failed (${res.status}). Body: ${text.slice(0, 300)}`);
+    }
 
     const data = await res.json();
     setResult(data.result ?? null);
+  } catch (err: any) {
+    console.error(err);
+    alert(err?.message ?? "Something went wrong. Check console + Network tab.");
+  } finally {
     setLoading(false);
   }
+}
+
 
   return (
     <main style={{ maxWidth: 720, margin: "40px auto", padding: 16, fontFamily: "system-ui" }}>
