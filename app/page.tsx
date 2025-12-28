@@ -67,6 +67,7 @@ export default function HomePage() {
       setSubmitting(false);
     }
   }
+  
 
   return (
     <main style={{ maxWidth: 720, margin: "clamp(20px, 6vh, 60px) auto", padding: "0 16px" }}>
@@ -131,34 +132,34 @@ export default function HomePage() {
                   >
                     <div style={{ fontWeight: 600, marginBottom: 8 }}>{q.label}</div>
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                            <div style={{ fontSize: 16 }}>
-                      {q.options.map((opt) => (
-<label
-  key={opt.value}
-  style={{
-    display: "flex",
-    gap: 10,
-    alignItems: "center",
-    padding: "10px 12px",
-    border: "1px solid rgba(0,0,0,0.15)",
-    borderRadius: 12,
-  }}
->
-
-                          <input
-                            type="radio"
-                            name={q.id}
-                            value={opt.value}
-                            checked={answers[q.id] === opt.value}
-                            onChange={(e) =>
-                              setAnswers((a) => ({ ...a, [q.id]: e.target.value }))
-                            }
-                          />
-                          {opt.label}
-                        </label>
-                      ))}
+                      <div style={{ fontSize: 16 }}>
+                        {q.options.map((opt) => (
+                          <label
+                            key={opt.value}
+                            style={{
+                              display: "flex",
+                              gap: 10,
+                              alignItems: "center",
+                              padding: "10px 12px",
+                              border: "1px solid rgba(0,0,0,0.15)",
+                              borderRadius: 12,
+                            }}
+                          >
+                            <input
+                              type="radio"
+                              name={q.id}
+                              value={opt.value}
+                              checked={answers[q.id] === opt.value}
+                              onChange={(e) =>
+                                setAnswers((a) => ({ ...a, [q.id]: e.target.value }))
+                              }
+                            />
+                            {opt.label}
+                          </label>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+
                 ))}
 
                 <button
