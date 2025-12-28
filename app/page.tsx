@@ -69,7 +69,7 @@ export default function HomePage() {
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "60px auto", padding: "0 16px" }}>
+    <main style={{ maxWidth: 720, margin: "clamp(20px, 6vh, 60px) auto", padding: "0 16px" }}>
       <h1 style={{ fontSize: 36, marginBottom: 12 }}>Find Your Next Craft</h1>
 
       <p style={{ fontSize: 18, lineHeight: 1.6, opacity: 0.9 }}>
