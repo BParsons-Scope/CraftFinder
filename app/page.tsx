@@ -125,15 +125,26 @@ export default function HomePage() {
                       border: "1px solid rgba(0,0,0,0.12)",
                       borderRadius: 12,
                       marginTop: 12,
+
+
                     }}
                   >
                     <div style={{ fontWeight: 600, marginBottom: 8 }}>{q.label}</div>
                     <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                            <div style={{ fontSize: 16 }}>
                       {q.options.map((opt) => (
-                        <label
-                          key={opt.value}
-                          style={{ display: "flex", gap: 8, alignItems: "center" }}
-                        >
+<label
+  key={opt.value}
+  style={{
+    display: "flex",
+    gap: 10,
+    alignItems: "center",
+    padding: "10px 12px",
+    border: "1px solid rgba(0,0,0,0.15)",
+    borderRadius: 12,
+  }}
+>
+
                           <input
                             type="radio"
                             name={q.id}
