@@ -12,27 +12,30 @@ type Question = {
 type Result = { title: string; blurb: string };
 
 export default function HomePage() {
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<Result | null>(null);
   const [expanded, setExpanded] = useState(false);
-
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [result, setResult] = useState<Result | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!expanded || questions.length > 0) return;
+    if (!expanded) return;
+    if (questions.length > 0) return;
 
     (async () => {
       setLoadingQuestions(true);
+      setError(null);
       try {
         const res = await fetch("/api/recommend", { method: "GET" });
-        if (!res.ok) throw new Error("Failed to load questions");
+        if (!res.ok) throw new Error(`GET /api/recommend failed (${res.status})`);
         const data = await res.json();
-        setQuestions(data.questions ?? []);
-      } catch (err) {
-        console.error(err);
-        alert("Couldn’t load questions. Check your /api/recommend GET endpoint.");
+        setQuestions(Array.isArray(data.questions) ? data.questions : []);
+      } catch (e: any) {
+        console.error(e);
+        setError(e?.message ?? "Failed to load questions");
       } finally {
         setLoadingQuestions(false);
       }
@@ -40,10 +43,13 @@ export default function HomePage() {
   }, [expanded, questions.length]);
 
   const canSubmit =
-    questions.length > 0 && questions.every((q) => Boolean(answers[q.id])) && !submitting;
+    questions.length > 0 &&
+    questions.every((q) => typeof answers[q.id] === "string" && answers[q.id].length > 0) &&
+    !submitting;
 
   async function onSubmit() {
     setSubmitting(true);
+    setError(null);
     setResult(null);
 
     try {
@@ -60,168 +66,158 @@ export default function HomePage() {
 
       const data = await res.json();
       setResult(data.result ?? null);
-    } catch (err: any) {
-      console.error(err);
-      alert(err?.message ?? "Something went wrong submitting your answers.");
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message ?? "Submission failed");
     } finally {
       setSubmitting(false);
     }
   }
-  
+
+  function reset() {
+    setExpanded(false);
+    setAnswers({});
+    setResult(null);
+    setError(null);
+    // keep questions cached so re-open is instant
+  }
 
   return (
-    <main style={{ maxWidth: 720, margin: "clamp(20px, 6vh, 60px) auto", padding: "0 16px" }}>
-      <h1 style={{ fontSize: 36, marginBottom: 12 }}>Find Your Next Craft</h1>
+    <main
+      style={{
+        maxWidth: 720,
+        margin: "clamp(16px, 6vh, 48px) auto",
+        padding: "0 16px",
+        fontSize: 16,
+        lineHeight: 1.5,
+      }}
+    >
+      <h1 style={{ margin: "0 0 12px 0", fontSize: 32 }}>Find Your Next Craft</h1>
 
-      <p style={{ fontSize: 18, lineHeight: 1.6, opacity: 0.9 }}>
-        Not sure what to make next? Answer a few quick questions and we’ll match you
-        with a crafting style and a project that actually fits your space, energy,
-        and tolerance for chaos.
+      <p style={{ margin: "0 0 20px 0", opacity: 0.9 }}>
+        Answer a couple of quick questions and get a recommendation.
       </p>
 
-      <section
-        style={{
-          marginTop: 32,
-          padding: 20,
-          border: "1px solid rgba(0,0,0,0.15)",
-          borderRadius: 14,
-        }}
-      >
-        <h2 style={{ fontSize: 22, marginTop: 0 }}>Takes about 1 minute</h2>
-
-        <ul style={{ paddingLeft: 20, lineHeight: 1.6, opacity: 0.85 }}>
-          <li>No login</li>
-          <li>No judgement</li>
-          <li>Maximum crafting joy</li>
-        </ul>
-
-        {!expanded ? (
-          <button
-            onClick={() => setExpanded(true)}
-            style={{
-              marginTop: 16,
-              display: "inline-block",
-              padding: "12px 18px",
-              borderRadius: 12,
-              border: "1px solid rgba(0,0,0,0.3)",
-              background: "white",
-              textDecoration: "none",
-              fontWeight: 600,
-              cursor: "pointer",
-            }}
-          >
-            Start the quiz →
-          </button>
-        ) : (
-          <div style={{ marginTop: 16 }}>
-            {loadingQuestions ? (
-              <p style={{ opacity: 0.8 }}>Loading questions…</p>
-            ) : (
-              <>
-                {questions.map((q) => (
-                  <div
-                    key={q.id}
-                    style={{
-                      padding: 16,
-                      border: "1px solid rgba(0,0,0,0.12)",
-                      borderRadius: 12,
-                      marginTop: 12,
-
-
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, marginBottom: 8 }}>{q.label}</div>
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                      <div style={{ fontSize: 16 }}>
-                        {q.options.map((opt) => (
-                          <label
-                            key={opt.value}
-                            style={{
-                              display: "flex",
-                              gap: 10,
-                              alignItems: "center",
-                              padding: "10px 12px",
-                              border: "1px solid rgba(0,0,0,0.15)",
-                              borderRadius: 12,
-                            }}
-                          >
-                            <input
-                              type="radio"
-                              name={q.id}
-                              value={opt.value}
-                              checked={answers[q.id] === opt.value}
-                              onChange={(e) =>
-                                setAnswers((a) => ({ ...a, [q.id]: e.target.value }))
-                              }
-                            />
-                            {opt.label}
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-
-                ))}
-
-                <button
-                  onClick={onSubmit}
-                  disabled={!canSubmit}
+      {!expanded ? (
+        <button
+          onClick={() => setExpanded(true)}
+          style={{
+            padding: "12px 16px",
+            borderRadius: 12,
+            border: "1px solid rgba(0,0,0,0.25)",
+            background: "white",
+            fontWeight: 600,
+            fontSize: 16,
+            cursor: "pointer",
+          }}
+        >
+          Start →
+        </button>
+      ) : (
+        <section style={{ marginTop: 12 }}>
+          {loadingQuestions ? (
+            <p style={{ marginTop: 12 }}>Loading…</p>
+          ) : (
+            <>
+              {questions.map((q) => (
+                <fieldset
+                  key={q.id}
                   style={{
-                    marginTop: 16,
-                    display: "inline-block",
-                    padding: "12px 18px",
+                    margin: "12px 0",
+                    padding: 12,
                     borderRadius: 12,
-                    border: "1px solid rgba(0,0,0,0.3)",
-                    background: canSubmit ? "white" : "rgba(0,0,0,0.04)",
-                    fontWeight: 600,
-                    cursor: canSubmit ? "pointer" : "not-allowed",
+                    border: "1px solid rgba(0,0,0,0.15)",
                   }}
                 >
-                  {submitting ? "Thinking…" : "Get recommendation"}
-                </button>
+                  <legend style={{ padding: "0 6px", fontWeight: 600 }}>{q.label}</legend>
 
-                {result && (
-                  <div
-                    style={{
-                      marginTop: 16,
-                      padding: 16,
-                      borderRadius: 12,
-                      border: "1px solid rgba(0,0,0,0.12)",
-                    }}
-                  >
-                    <h3 style={{ margin: 0 }}>{result.title}</h3>
-                    <p style={{ marginBottom: 0, opacity: 0.9 }}>{result.blurb}</p>
+                  <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+                    {q.options.map((opt) => (
+                      <label
+                        key={opt.value}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          padding: "10px 12px",
+                          border: "1px solid rgba(0,0,0,0.12)",
+                          borderRadius: 12,
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name={q.id}
+                          value={opt.value}
+                          checked={answers[q.id] === opt.value}
+                          onChange={(e) =>
+                            setAnswers((a) => ({ ...a, [q.id]: e.target.value }))
+                          }
+                        />
+                        <span style={{ fontSize: 16 }}>{opt.label}</span>
+                      </label>
+                    ))}
                   </div>
-                )}
+                </fieldset>
+              ))}
 
-                <button
-                  onClick={() => {
-                    setExpanded(false);
-                    setAnswers({});
-                    setResult(null);
-                    // keep questions cached so reopening is instant
-                  }}
+              <button
+                onClick={onSubmit}
+                disabled={!canSubmit}
+                style={{
+                  marginTop: 8,
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(0,0,0,0.25)",
+                  background: canSubmit ? "white" : "rgba(0,0,0,0.06)",
+                  fontWeight: 600,
+                  fontSize: 16,
+                  cursor: canSubmit ? "pointer" : "not-allowed",
+                }}
+              >
+                {submitting ? "Thinking…" : "Get recommendation"}
+              </button>
+
+              <button
+                onClick={reset}
+                style={{
+                  marginLeft: 10,
+                  marginTop: 8,
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(0,0,0,0.15)",
+                  background: "transparent",
+                  fontSize: 16,
+                  cursor: "pointer",
+                  opacity: 0.85,
+                }}
+              >
+                Reset
+              </button>
+
+              {error && (
+                <p style={{ marginTop: 12, opacity: 0.9 }}>
+                  <strong>Error:</strong> {error}
+                </p>
+              )}
+
+              {result && (
+                <div
+                  aria-live="polite"
                   style={{
-                    marginTop: 12,
-                    display: "inline-block",
-                    padding: "8px 12px",
-                    borderRadius: 10,
-                    border: "1px solid rgba(0,0,0,0.2)",
-                    background: "transparent",
-                    cursor: "pointer",
-                    opacity: 0.85,
+                    marginTop: 14,
+                    padding: 12,
+                    borderRadius: 12,
+                    border: "1px solid rgba(0,0,0,0.15)",
                   }}
                 >
-                  Reset
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </section>
-
-      <footer style={{ marginTop: 48, fontSize: 14, opacity: 0.7 }}>
-        <p>Built as a friendly experiment in helping people make things.</p>
-      </footer>
+                  <h2 style={{ margin: "0 0 6px 0", fontSize: 20 }}>{result.title}</h2>
+                  <p style={{ margin: 0, opacity: 0.9 }}>{result.blurb}</p>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      )}
     </main>
   );
 }
