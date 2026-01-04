@@ -107,44 +107,44 @@ function QuizScreen({
 
   const selected = (id: string) => draft.includes(id);
 
-  // --- Swipe handling (left = Next, right = Back) ---
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  //  --- Swipe handling (left = Next, right = Back) ---  Turned off for now, was too sensitive
+  // const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  // const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    const t = e.touches[0];
-    setTouchStartX(t.clientX);
-    setTouchStartY(t.clientY);
-  };
+  // const onTouchStart = (e: React.TouchEvent) => {
+  //   const t = e.touches[0];
+  //   setTouchStartX(t.clientX);
+  //   setTouchStartY(t.clientY);
+  // };
 
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX === null || touchStartY === null) return;
+  // const onTouchEnd = (e: React.TouchEvent) => {
+  //   if (touchStartX === null || touchStartY === null) return;
 
-    const t = e.changedTouches[0];
-    const dx = t.clientX - touchStartX;
-    const dy = t.clientY - touchStartY;
+  //   const t = e.changedTouches[0];
+  //   const dx = t.clientX - touchStartX;
+  //   const dy = t.clientY - touchStartY;
 
-    // Ignore mostly-vertical gestures (scroll)
-    if (Math.abs(dy) > Math.abs(dx)) return;
+  //   // Ignore mostly-vertical gestures (scroll)
+  //   if (Math.abs(dy) > Math.abs(dx)) return;
 
-    const SWIPE_THRESHOLD = 60; // px
+  //   const SWIPE_THRESHOLD = 60; // px
 
-    if (dx <= -SWIPE_THRESHOLD) {
-      // swipe left -> Next (commit)
-      onNext(draft);
-    } else if (dx >= SWIPE_THRESHOLD) {
-      // swipe right -> Back (no commit)
-      onBack();
-    }
+  //   if (dx <= -SWIPE_THRESHOLD) {
+  //     // swipe left -> Next (commit)
+  //     onNext(draft);
+  //   } else if (dx >= SWIPE_THRESHOLD) {
+  //     // swipe right -> Back (no commit)
+  //     onBack();
+  //   }
 
-    setTouchStartX(null);
-    setTouchStartY(null);
-  };
+  //   setTouchStartX(null);
+  //   setTouchStartY(null);
+  // };
 
   return (
     <main
-      onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd}
+      {/* onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd} */}
       style={{
         minHeight: "100dvh",
         display: "flex",
@@ -245,9 +245,7 @@ function QuizScreen({
           ✨ End quiz now
         </button>
 
-        <div style={{ fontSize: 12, opacity: 0.65, textAlign: "center" }}>
-          Tip: swipe left for Next, swipe right for Back
-        </div>
+
       </div>
     </main>
   );
