@@ -1,0 +1,176 @@
+/* app/result/result.module.css */
+
+.main {
+  min-height: 100dvh;
+  padding: 16px;
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.h1 {
+  margin: 0;
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.subtle {
+  margin: 0;
+  opacity: 0.8;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.15);
+  background: white;
+}
+
+.cardMuted {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.15);
+  background: rgba(0,0,0,0.03);
+}
+
+.statLabel {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.statValue {
+  font-size: 22px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
+.sectionTitle {
+  margin: 6px 0 0;
+  font-size: 18px;
+}
+
+.crafterStyle {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,0.15);
+  background: linear-gradient(135deg, rgba(255,122,24,0.12), rgba(122,252,255,0.12));
+}
+
+.crafterKicker {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+.crafterSentence {
+  margin: 8px 0 0;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+
+.tilesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.tile {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,0.15);
+  background: linear-gradient(135deg, rgba(255,122,24,0.12), rgba(122,252,255,0.12));
+}
+
+.tileTopRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.tileTitle {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.pill {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.08);
+  white-space: nowrap;
+}
+
+.tileBlurb {
+  margin: 10px 0 0;
+  opacity: 0.85;
+}
+
+.tileNote {
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.footer {
+  margin-top: auto;
+  display: flex;
+  gap: 10px;
+}
+
+.primaryLink {
+  flex: 1;
+  padding: 14px;
+  border-radius: 14px;
+  background: black;
+  color: white;
+  text-decoration: none;
+  text-align: center;
+  font-weight: 700;
+}
+
+.secondaryLink {
+  flex: 1;
+  padding: 14px;
+  border-radius: 14px;
+  background: white;
+  border: 1px solid rgba(0,0,0,0.15);
+  text-decoration: none;
+  text-align: center;
+}
+
+.details {
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.15);
+  background: rgba(0,0,0,0.03);
+}
+
+.summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.pre {
+  white-space: pre-wrap;
+  margin-top: 10px;
+}
