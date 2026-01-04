@@ -1,57 +1,46 @@
+// app/api/recommend/route.ts
 import { NextResponse } from "next/server";
+import { QUESTIONS, QUIZ_FLOW } from "@/app/lib/quiz/questions";
+import type { ResponseMap } from "@/app/lib/quiz/types";
 
-type Rules = {
+type ScoringRules = {
   version: number;
-  questions: Array<{
-    id: string;
-    label: string;
-    options: Array<{ value: string; label: string }>;
-  }>;
-  mapping: Array<{
-    when: Record<string, string>;
-    result: { title: string; blurb: string };
-  }>;
+  // You decide exact structure based on your Excel export:
+  // e.g. optionEffects: Record<optionId, Record<trait, number>>
+  //      crafts: Array<{ id, title, blurb, vector... }>
+  //      etc
 };
 
-function getRules(): Rules {
-  const raw = process.env.SECRET_RULES_JSON;
-  if (!raw) throw new Error("Missing SECRET_RULES_JSON");
-  return JSON.parse(raw) as Rules;
+function getScoring(): ScoringRules {
+  const raw = process.env.SECRET_SCORING_JSON;
+  if (!raw) throw new Error("Missing SECRET_SCORING_JSON");
+  return JSON.parse(raw) as ScoringRules;
 }
 
 export async function GET() {
-  try {
-    const rules = getRules();
-    // Only return what's needed to render the form
-    return NextResponse.json(
-      { version: rules.version, questions: rules.questions },
-      { status: 200 }
-    );
-  } catch {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
-  }
+  // Public UX config only (safe to expose)
+  return NextResponse.json(
+    { version: 1, flow: QUIZ_FLOW, questions: QUESTIONS },
+    { status: 200 }
+  );
 }
 
 export async function POST(req: Request) {
   try {
-    const rules = getRules();
-    const body = (await req.json()) as { answers?: Record<string, string> };
+    const scoring = getScoring();
 
-    const answers = body.answers ?? {};
-    // Find first mapping that matches all conditions
-    const match = rules.mapping.find((m) =>
-      Object.entries(m.when).every(([qid, val]) => answers[qid] === val)
-    );
+    const body = (await req.json()) as { responses?: ResponseMap };
+    const responses = body.responses ?? {};
 
-    const result =
-      match?.result ?? {
-        title: "Unclassified Legend",
-        blurb: "You’ve found a combo we didn’t anticipate. Respect.",
-      };
+    // TODO: apply scoring rules server-side using optionIds
+    // return only results (not weights)
+    const recommendations = [
+      // { craftId, title, blurb, score, reasons?: string[] }
+    ];
 
-    return NextResponse.json({ result }, { status: 200 });
-  } catch {
+    return NextResponse.json({ recommendations }, { status: 200 });
+  } catch (e) {
+    console.error(e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
-
