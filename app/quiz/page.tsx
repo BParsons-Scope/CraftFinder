@@ -152,18 +152,40 @@ function QuizScreen({
         </button>
       </div>
 
-      <button
-        onClick={() => onNext([])}
-        style={{
-          padding: 10,
-          border: "none",
-          background: "transparent",
-          textDecoration: "underline",
-          opacity: 0.7,
-        }}
-      >
-        Skip this question
-      </button>
+<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+  <button
+    onClick={() => onNext([])}
+    style={{
+      padding: 10,
+      border: "none",
+      background: "transparent",
+      textDecoration: "underline",
+      opacity: 0.7,
+    }}
+  >
+    Skip this question
+  </button>
+
+  <button
+    onClick={() => onNext(draft)}
+    style={{
+      padding: "10px 14px",
+      borderRadius: 999,
+      border: "none",
+      background:
+        "linear-gradient(135deg, #ff7a18, #ffb347, #7afcff)",
+      color: "#000",
+      fontWeight: 600,
+      fontSize: 14,
+      cursor: "pointer",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+      alignSelf: "center",
+    }}
+  >
+    ✨ End quiz now
+  </button>
+</div>
+
     </main>
   );
 }
