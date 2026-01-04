@@ -1,104 +1,113 @@
 // app/result/page.tsx
-import Link from "next/link";
+"use client";
 
-type SearchParams = {
-  answer?: string;
+import Link from "next/link";
+import { useEffect, useState } from "react";
+
+type StoredPayload = {
+  responses: Record<string, string[]>;
 };
 
-function getResult(answer: string | undefined) {
-  const isMessy = answer === "messy";
+export default function ResultPage() {
+  const [payload, setPayload] = useState<StoredPayload | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  if (isMessy) {
-    return {
-      personaName: "The Joyful Chaos Crafter",
-      blurb:
-        "You’re happiest when you can dive in, experiment, and let the materials do their thing. Perfection is optional; curiosity is mandatory.",
-      project: "Try: air-dry clay trinket dish (fast, satisfying, mildly chaotic).",
-      affiliateLabel: "Starter kit idea",
-      affiliateUrl: "#", // replace later with an affiliate link
-    };
-  }
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("craftfinder_responses_v1");
+      if (!raw) {
+        setPayload(null);
+        return;
+      }
+      const parsed = JSON.parse(raw) as { responses?: Record<string, string[]> };
+      setPayload({ responses: parsed.responses ?? {} });
+    } catch (e) {
+      setError("Couldn’t read your quiz answers (storage was malformed).");
+    }
+  }, []);
 
-  return {
-    personaName: "The Calm Precision Maker",
-    blurb:
-      "You love clear steps, clean edges, and the quiet satisfaction of a tidy finish. Your craft space is basically a tiny design studio.",
-    project: "Try: paper quilling greeting card (tidy, portable, very soothing).",
-    affiliateLabel: "Starter kit idea",
-    affiliateUrl: "#", // replace later with an affiliate link
-  };
-}
-
-export default function ResultPage({ searchParams }: { searchParams: SearchParams }) {
-  const { personaName, blurb, project, affiliateLabel, affiliateUrl } = getResult(
-    searchParams.answer
-  );
+  const answeredCount = payload
+    ? Object.values(payload.responses).filter((arr) => Array.isArray(arr) && arr.length > 0).length
+    : 0;
 
   return (
-    <main style={{ maxWidth: 720, margin: "40px auto", padding: "0 16px" }}>
-      <h1 style={{ fontSize: 32, marginBottom: 8 }}>Your Craft Persona</h1>
-      <p style={{ marginTop: 0, opacity: 0.8 }}>
-        (This is a placeholder result — soon it’ll be a proper personality-test moment.)
+    <main
+      style={{
+        minHeight: "100dvh",
+        padding: 16,
+        maxWidth: 680,
+        margin: "0 auto",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+      }}
+    >
+      <h1 style={{ margin: 0, fontSize: 26, lineHeight: 1.15 }}>Results</h1>
+
+      <p style={{ margin: 0, opacity: 0.8 }}>
+        MVP placeholder: this page will show real craft recommendations once scoring is wired in.
       </p>
 
-      <section
-        style={{
-          marginTop: 24,
-          padding: 16,
-          border: "1px solid rgba(0,0,0,0.15)",
-          borderRadius: 12,
-        }}
-      >
-        <h2 style={{ fontSize: 24, marginTop: 0 }}>{personaName}</h2>
-        <p style={{ lineHeight: 1.6 }}>{blurb}</p>
-
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(0,0,0,0.1)" }}>
-          <p style={{ margin: 0, fontWeight: 600 }}>Suggested first project</p>
-          <p style={{ marginTop: 8 }}>{project}</p>
+      {error && (
+        <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 12 }}>
+          {error}
         </div>
+      )}
 
-        <div style={{ marginTop: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <a
-            href={affiliateUrl}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              padding: "10px 14px",
-              borderRadius: 10,
-              border: "1px solid rgba(0,0,0,0.2)",
-              textDecoration: "none",
-              display: "inline-block",
-            }}
-          >
-            {affiliateLabel} →
-          </a>
-
-          <Link
-            href="/quiz"
-            style={{
-              padding: "10px 14px",
-              borderRadius: 10,
-              border: "1px solid rgba(0,0,0,0.2)",
-              textDecoration: "none",
-              display: "inline-block",
-              opacity: 0.9,
-            }}
-          >
-            Retake quiz
-          </Link>
+      {!payload ? (
+        <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 12 }}>
+          No saved quiz answers found. Try taking the quiz first.
         </div>
+      ) : (
+        <>
+          <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 12 }}>
+            <strong>Answered questions:</strong> {answeredCount}
+            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+              (Skipped questions are totally fine.)
+            </div>
+          </div>
 
-        <p style={{ marginTop: 16, fontSize: 14, opacity: 0.7 }}>
-          Affiliate disclosure (placeholder): Some links may earn a small commission at no
-          extra cost to you.
-        </p>
-      </section>
+          <details style={{ padding: 12, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 12 }}>
+            <summary style={{ cursor: "pointer" }}>Show raw responses (debug)</summary>
+            <pre style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>
+              {JSON.stringify(payload, null, 2)}
+            </pre>
+          </details>
+        </>
+      )}
 
-      <p style={{ marginTop: 24 }}>
-        <Link href="/" style={{ opacity: 0.8 }}>
-          ← Back to home
+      <div style={{ marginTop: "auto", display: "flex", gap: 10 }}>
+        <Link
+          href="/quiz"
+          style={{
+            flex: 1,
+            padding: 14,
+            borderRadius: 14,
+            background: "black",
+            color: "white",
+            textDecoration: "none",
+            textAlign: "center",
+            fontWeight: 600,
+          }}
+        >
+          Retake quiz
         </Link>
-      </p>
+
+        <Link
+          href="/"
+          style={{
+            flex: 1,
+            padding: 14,
+            borderRadius: 14,
+            background: "white",
+            border: "1px solid rgba(0,0,0,0.15)",
+            textDecoration: "none",
+            textAlign: "center",
+          }}
+        >
+          Home
+        </Link>
+      </div>
     </main>
   );
 }
