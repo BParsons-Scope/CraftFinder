@@ -77,6 +77,11 @@ export default function ResultPage() {
         gap: 14,
       }}
     >
+      <div style={{ padding: 8, borderRadius: 10, background: "hotpink", color: "white", fontWeight: 800 }}>
+  RESULT PAGE v2 ✅
+</div>
+
+      
       <header style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <h1 style={{ margin: 0, fontSize: 26, lineHeight: 1.15 }}>Your Craft Signals</h1>
         <p style={{ margin: 0, opacity: 0.8 }}>
