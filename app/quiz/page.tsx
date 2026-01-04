@@ -51,6 +51,7 @@ export default function QuizPage() {
       optionIdsToCommit !== undefined
         ? { ...committed, [q.id]: optionIdsToCommit }
         : { ...committed };
+
     setCommitted(nextCommitted);
     goToResults(nextCommitted);
   };
@@ -92,7 +93,6 @@ function QuizScreen({
   onEndNow: (optionIdsToCommit?: string[]) => void;
   isLast: boolean;
 }) {
-  // Draft selection: user can fiddle here without committing until Next.
   const [draft, setDraft] = useState<string[]>(initialSelection);
 
   const toggle = (optionId: string) => {
@@ -107,44 +107,8 @@ function QuizScreen({
 
   const selected = (id: string) => draft.includes(id);
 
-  //  --- Swipe handling (left = Next, right = Back) ---  Turned off for now, was too sensitive
-  // const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  // const [touchStartY, setTouchStartY] = useState<number | null>(null);
-
-  // const onTouchStart = (e: React.TouchEvent) => {
-  //   const t = e.touches[0];
-  //   setTouchStartX(t.clientX);
-  //   setTouchStartY(t.clientY);
-  // };
-
-  // const onTouchEnd = (e: React.TouchEvent) => {
-  //   if (touchStartX === null || touchStartY === null) return;
-
-  //   const t = e.changedTouches[0];
-  //   const dx = t.clientX - touchStartX;
-  //   const dy = t.clientY - touchStartY;
-
-  //   // Ignore mostly-vertical gestures (scroll)
-  //   if (Math.abs(dy) > Math.abs(dx)) return;
-
-  //   const SWIPE_THRESHOLD = 60; // px
-
-  //   if (dx <= -SWIPE_THRESHOLD) {
-  //     // swipe left -> Next (commit)
-  //     onNext(draft);
-  //   } else if (dx >= SWIPE_THRESHOLD) {
-  //     // swipe right -> Back (no commit)
-  //     onBack();
-  //   }
-
-  //   setTouchStartX(null);
-  //   setTouchStartY(null);
-  // };
-
   return (
     <main
-      {/* onTouchStart={onTouchStart}
-      onTouchEnd={onTouchEnd} */}
       style={{
         minHeight: "100dvh",
         display: "flex",
@@ -244,8 +208,6 @@ function QuizScreen({
         >
           ✨ End quiz now
         </button>
-
-
       </div>
     </main>
   );
@@ -269,11 +231,6 @@ function SignalDots({
         const skipped = hasCommitted && val.length === 0;
         const isCurrent = idx === currentStep;
 
-        // Visual language:
-        // - answered: filled dot
-        // - skipped: dashed ring
-        // - current: thick outline
-        // - future: faint
         let background = "rgba(0,0,0,0.10)";
         let border = "1px solid rgba(0,0,0,0.15)";
         let opacity = idx <= currentStep ? 1 : 0.45;
@@ -286,9 +243,7 @@ function SignalDots({
           border = "1px dashed rgba(0,0,0,0.5)";
         }
 
-        if (isCurrent) {
-          border = "2px solid rgba(0,0,0,0.85)";
-        }
+        if (isCurrent) border = "2px solid rgba(0,0,0,0.85)";
 
         return (
           <span
