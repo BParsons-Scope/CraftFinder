@@ -1,81 +1,37 @@
+// app/result/page.tsx
 "use client";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-type StoredPayload = {
-  responses: Record<string, string[]>;
-};
+type StoredPayload = { responses: Record<string, string[]> };
 
 export default function ResultPage() {
   const [payload, setPayload] = useState<StoredPayload | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const raw = sessionStorage.getItem("craftfinder_responses_v1");
+    if (!raw) return;
     try {
-      const raw = sessionStorage.getItem("craftfinder_responses_v1");
-      if (!raw) {
-        setPayload(null);
-        return;
-      }
-      const parsed = JSON.parse(raw) as { responses?: Record<string, string[]> };
-      setPayload({ responses: parsed.responses ?? {} });
+      const parsed = JSON.parse(raw) as StoredPayload;
+      setPayload(parsed);
     } catch {
-      setError("Couldn’t read your quiz answers (storage was malformed).");
+      setPayload({ responses: {} });
     }
   }, []);
 
-  const answeredCount = payload
-    ? Object.values(payload.responses).filter((arr) => Array.isArray(arr) && arr.length > 0).length
-    : 0;
-
   return (
-    <main
-      style={{
-        minHeight: "100dvh",
-        padding: 16,
-        maxWidth: 680,
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: 12,
-      }}
-    >
-      <h1 style={{ margin: 0, fontSize: 26, lineHeight: 1.15 }}>Results</h1>
-
-      <p style={{ margin: 0, opacity: 0.8 }}>
-        MVP placeholder: this page will show real craft recommendations once scoring is wired in.
+    <main style={{ minHeight: "100dvh", padding: 16, maxWidth: 680, margin: "0 auto" }}>
+      <h1 style={{ margin: 0, fontSize: 26 }}>Results</h1>
+      <p style={{ opacity: 0.8 }}>
+        MVP placeholder: we’ll add proper scoring later. For now, this confirms the quiz flow works.
       </p>
 
-      {error && (
-        <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 12 }}>
-          {error}
-        </div>
-      )}
+      <pre style={{ whiteSpace: "pre-wrap", background: "rgba(0,0,0,0.05)", padding: 12, borderRadius: 12 }}>
+        {JSON.stringify(payload, null, 2)}
+      </pre>
 
-      {!payload ? (
-        <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 12 }}>
-          No saved quiz answers found. Try taking the quiz first.
-        </div>
-      ) : (
-        <>
-          <div style={{ padding: 12, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 12 }}>
-            <strong>Answered questions:</strong> {answeredCount}
-            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
-              (Skipped questions are totally fine.)
-            </div>
-          </div>
-
-          <details style={{ padding: 12, border: "1px solid rgba(0,0,0,0.15)", borderRadius: 12 }}>
-            <summary style={{ cursor: "pointer" }}>Show raw responses (debug)</summary>
-            <pre style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>
-              {JSON.stringify(payload, null, 2)}
-            </pre>
-          </details>
-        </>
-      )}
-
-      <div style={{ marginTop: "auto", display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
         <Link
           href="/quiz"
           style={{
