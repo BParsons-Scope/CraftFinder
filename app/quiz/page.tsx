@@ -47,6 +47,7 @@ export default function QuizPage() {
       step={step}
       totalSteps={QUIZ_FLOW.length}
       initialSelection={committedForThisQ}
+      committed={committed}   
       onBack={onBack}
       onNext={onCommitAndNext}
       isLast={isLast}
@@ -59,6 +60,7 @@ function QuizScreen({
   step,
   totalSteps,
   initialSelection,
+  committed,
   onBack,
   onNext,
   isLast,
@@ -67,13 +69,50 @@ function QuizScreen({
   step: number;
   totalSteps: number;
   initialSelection: string[];
+  committed: ResponseMap;        // 👈 add this
   onBack: () => void;
   onNext: (optionIds: string[]) => void;
   isLast: boolean;
 }) {
+
   // Draft selection: user can fiddle here without committing until Next.
   const [draft, setDraft] = useState<string[]>(initialSelection);
 
+    // --- Swipe handling (left = Next, right = Back) ---
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0];
+    setTouchStartX(t.clientX);
+    setTouchStartY(t.clientY);
+  };
+
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null || touchStartY === null) return;
+
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartX;
+    const dy = t.clientY - touchStartY;
+
+    // Ignore mostly-vertical gestures (scroll)
+    if (Math.abs(dy) > Math.abs(dx)) return;
+
+    const SWIPE_THRESHOLD = 60; // px
+
+    if (dx <= -SWIPE_THRESHOLD) {
+      // swipe left -> Next (commit)
+      onNext(draft);
+    } else if (dx >= SWIPE_THRESHOLD) {
+      // swipe right -> Back (no commit)
+      onBack();
+    }
+
+    setTouchStartX(null);
+    setTouchStartY(null);
+  };
+
+  
   const toggle = (optionId: string) => {
     if (q.type === "single") {
       setDraft((prev) => (prev[0] === optionId ? [] : [optionId]));
@@ -187,5 +226,12 @@ function QuizScreen({
 </div>
 
     </main>
+
+    <main
+  onTouchStart={onTouchStart}
+  onTouchEnd={onTouchEnd}
+  style={{ ... }}
+>
+
   );
 }
