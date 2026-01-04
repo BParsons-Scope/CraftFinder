@@ -1,7 +1,7 @@
 // app/quiz/page.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { QUESTIONS, QUIZ_FLOW } from "../lib/quiz/questions";
 import type { QuestionDef, ResponseMap } from "../lib/quiz/types";
@@ -22,16 +22,22 @@ export default function QuizPage() {
   const q = useMemo(() => getQuestionById(questionId), [questionId]);
 
   const committedForThisQ = committed[q.id] ?? [];
-
   const isLast = step === QUIZ_FLOW.length - 1;
 
+  const goToResults = (nextCommitted: ResponseMap) => {
+    sessionStorage.setItem(
+      "craftfinder_responses_v1",
+      JSON.stringify({ responses: nextCommitted })
+    );
+    router.push("/result");
+  };
+
   const onCommitAndNext = (optionIds: string[]) => {
-    setCommitted((prev) => ({ ...prev, [q.id]: optionIds }));
+    const nextCommitted: ResponseMap = { ...committed, [q.id]: optionIds };
+    setCommitted(nextCommitted);
 
     if (isLast) {
-      // MVP: store results in sessionStorage and go to /result
-      sessionStorage.setItem("craftfinder_responses_v1", JSON.stringify({ responses: { ...committed, [q.id]: optionIds } }));
-      router.push("/result");
+      goToResults(nextCommitted);
       return;
     }
 
@@ -40,6 +46,15 @@ export default function QuizPage() {
 
   const onBack = () => setStep((s) => Math.max(0, s - 1));
 
+  const endQuizNow = (optionIdsToCommit?: string[]) => {
+    const nextCommitted: ResponseMap =
+      optionIdsToCommit !== undefined
+        ? { ...committed, [q.id]: optionIdsToCommit }
+        : { ...committed };
+    setCommitted(nextCommitted);
+    goToResults(nextCommitted);
+  };
+
   return (
     <QuizScreen
       key={q.id}
@@ -47,9 +62,10 @@ export default function QuizPage() {
       step={step}
       totalSteps={QUIZ_FLOW.length}
       initialSelection={committedForThisQ}
-      committed={committed}   
+      committed={committed}
       onBack={onBack}
       onNext={onCommitAndNext}
+      onEndNow={endQuizNow}
       isLast={isLast}
     />
   );
@@ -63,22 +79,35 @@ function QuizScreen({
   committed,
   onBack,
   onNext,
+  onEndNow,
   isLast,
 }: {
   q: QuestionDef;
   step: number;
   totalSteps: number;
   initialSelection: string[];
-  committed: ResponseMap;        // 👈 add this
+  committed: ResponseMap;
   onBack: () => void;
   onNext: (optionIds: string[]) => void;
+  onEndNow: (optionIdsToCommit?: string[]) => void;
   isLast: boolean;
 }) {
-
   // Draft selection: user can fiddle here without committing until Next.
   const [draft, setDraft] = useState<string[]>(initialSelection);
 
-    // --- Swipe handling (left = Next, right = Back) ---
+  const toggle = (optionId: string) => {
+    if (q.type === "single") {
+      setDraft((prev) => (prev[0] === optionId ? [] : [optionId]));
+      return;
+    }
+    setDraft((prev) =>
+      prev.includes(optionId) ? prev.filter((x) => x !== optionId) : [...prev, optionId]
+    );
+  };
+
+  const selected = (id: string) => draft.includes(id);
+
+  // --- Swipe handling (left = Next, right = Back) ---
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
@@ -112,19 +141,10 @@ function QuizScreen({
     setTouchStartY(null);
   };
 
-  
-  const toggle = (optionId: string) => {
-    if (q.type === "single") {
-      setDraft((prev) => (prev[0] === optionId ? [] : [optionId]));
-      return;
-    }
-    setDraft((prev) => (prev.includes(optionId) ? prev.filter((x) => x !== optionId) : [...prev, optionId]));
-  };
-
-  const selected = (id: string) => draft.includes(id);
-
   return (
     <main
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
       style={{
         minHeight: "100dvh",
         display: "flex",
@@ -138,6 +158,8 @@ function QuizScreen({
       <div style={{ fontSize: 12, opacity: 0.7 }}>
         Question {step + 1} of {totalSteps}
       </div>
+
+      <SignalDots totalSteps={totalSteps} currentStep={step} committed={committed} />
 
       <h1 style={{ fontSize: 22, lineHeight: 1.2, margin: 0 }}>{q.prompt}</h1>
 
@@ -191,47 +213,101 @@ function QuizScreen({
         </button>
       </div>
 
-<div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-  <button
-    onClick={() => onNext([])}
-    style={{
-      padding: 10,
-      border: "none",
-      background: "transparent",
-      textDecoration: "underline",
-      opacity: 0.7,
-    }}
-  >
-    Skip this question
-  </button>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <button
+          onClick={() => onNext([])}
+          style={{
+            padding: 10,
+            border: "none",
+            background: "transparent",
+            textDecoration: "underline",
+            opacity: 0.7,
+          }}
+        >
+          Skip this question
+        </button>
 
-  <button
-    onClick={() => onNext(draft)}
-    style={{
-      padding: "10px 14px",
-      borderRadius: 999,
-      border: "none",
-      background:
-        "linear-gradient(135deg, #ff7a18, #ffb347, #7afcff)",
-      color: "#000",
-      fontWeight: 600,
-      fontSize: 14,
-      cursor: "pointer",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-      alignSelf: "center",
-    }}
-  >
-    ✨ End quiz now
-  </button>
-</div>
+        <button
+          onClick={() => onEndNow(draft)}
+          style={{
+            padding: "10px 14px",
+            borderRadius: 999,
+            border: "none",
+            background: "linear-gradient(135deg, #ff7a18, #ffb347, #7afcff)",
+            color: "#000",
+            fontWeight: 700,
+            fontSize: 14,
+            cursor: "pointer",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+            alignSelf: "center",
+          }}
+        >
+          ✨ End quiz now
+        </button>
 
+        <div style={{ fontSize: 12, opacity: 0.65, textAlign: "center" }}>
+          Tip: swipe left for Next, swipe right for Back
+        </div>
+      </div>
     </main>
+  );
+}
 
-    <main
-  onTouchStart={onTouchStart}
-  onTouchEnd={onTouchEnd}
-  style={{ ... }}
->
+function SignalDots({
+  totalSteps,
+  currentStep,
+  committed,
+}: {
+  totalSteps: number;
+  currentStep: number;
+  committed: ResponseMap;
+}) {
+  return (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+      {QUIZ_FLOW.slice(0, totalSteps).map((qid, idx) => {
+        const val = committed[qid];
+        const hasCommitted = Array.isArray(val);
+        const answered = hasCommitted && val.length > 0;
+        const skipped = hasCommitted && val.length === 0;
+        const isCurrent = idx === currentStep;
 
+        // Visual language:
+        // - answered: filled dot
+        // - skipped: dashed ring
+        // - current: thick outline
+        // - future: faint
+        let background = "rgba(0,0,0,0.10)";
+        let border = "1px solid rgba(0,0,0,0.15)";
+        let opacity = idx <= currentStep ? 1 : 0.45;
+
+        if (answered) {
+          background = "rgba(0,0,0,0.85)";
+          border = "1px solid rgba(0,0,0,0.85)";
+        } else if (skipped) {
+          background = "transparent";
+          border = "1px dashed rgba(0,0,0,0.5)";
+        }
+
+        if (isCurrent) {
+          border = "2px solid rgba(0,0,0,0.85)";
+        }
+
+        return (
+          <span
+            key={qid}
+            title={answered ? "Answered" : skipped ? "Skipped" : "Not yet"}
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: 999,
+              display: "inline-block",
+              background,
+              border,
+              opacity,
+            }}
+          />
+        );
+      })}
+    </div>
   );
 }
