@@ -3,27 +3,108 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { QUESTIONS } from "../lib/quiz/questions";
+import { QUESTIONS, QUIZ_FLOW } from "../lib/quiz/questions";
+import styles from "./result.module.css";
 
 type StoredPayload = {
   responses: Record<string, string[]>;
-};
-
-type ReflectedAnswer = {
-  questionId: string;
-  questionPrompt: string;
-  optionLabels: string[]; // empty => skipped
 };
 
 function safeParse(raw: string | null): StoredPayload | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as Partial<StoredPayload>;
-    if (!parsed || typeof parsed !== "object") return null;
     return { responses: parsed.responses ?? {} };
   } catch {
     return null;
   }
+}
+
+function labelForOptionId(optionId: string): string {
+  for (const q of QUESTIONS) {
+    const opt = q.options.find((o) => o.id === optionId);
+    if (opt) return opt.label;
+  }
+  return optionId;
+}
+
+function firstLabel(payload: StoredPayload, questionId: string): string | null {
+  const ids = payload.responses[questionId];
+  if (!ids || ids.length === 0) return null;
+  return labelForOptionId(ids[0]);
+}
+
+function manyLabels(payload: StoredPayload, questionId: string): string[] {
+  const ids = payload.responses[questionId] ?? [];
+  return ids.map(labelForOptionId);
+}
+
+function buildCrafterStyle(payload: StoredPayload): string {
+  // Pull a few “high signal” answers. If missing, we just omit that clause.
+  const where = firstLabel(payload, "where_craft");
+  const space = firstLabel(payload, "space");
+  const social = firstLabel(payload, "social");
+  const computers = firstLabel(payload, "computers");
+
+  const mess = firstLabel(payload, "mess");
+  const sensory = manyLabels(payload, "sensory_avoid");
+  const tools = firstLabel(payload, "tools_danger");
+
+  const workStyle = firstLabel(payload, "work_style");
+  const duration = firstLabel(payload, "duration");
+
+  const perfection = firstLabel(payload, "perfection");
+  const style = firstLabel(payload, "style");
+  const output = firstLabel(payload, "outputs");
+
+  // Build a sentence that reads like a “crafter style” blurb.
+  // Intentional vibe: observant, lightly playful, not too specific.
+  const parts: string[] = [];
+
+  if (where || space) {
+    const p = `You’re most likely crafting ${where ? where.toLowerCase() : "wherever you land"}${space ? `, with ${space.toLowerCase()}` : ""}.`;
+    parts.push(p);
+  }
+
+  if (workStyle || duration) {
+    parts.push(
+      `Your rhythm leans ${workStyle ? workStyle.toLowerCase() : "towards whatever fits the moment"}${duration ? `, and you’re happy for a project to be ${duration.toLowerCase()}` : ""}.`
+    );
+  }
+
+  if (mess || tools || sensory.length > 0) {
+    const sensoryBit =
+      sensory.length > 0 ? `You’d rather avoid ${sensory.map((s) => s.toLowerCase()).join(", ")}.` : null;
+
+    parts.push(
+      `You prefer things ${mess ? mess.toLowerCase() : "that don’t derail your space"}${tools ? `, and your tool comfort level is: ${tools.toLowerCase()}` : ""}.`
+    );
+
+    if (sensoryBit) parts.push(sensoryBit);
+  }
+
+  if (social || computers) {
+    parts.push(
+      `${social ? social : "You’ve got a clear vibe about how social this should be"}${computers ? ` — and for tech, you said: ${computers.toLowerCase()}` : "."}`
+    );
+  }
+
+  if (style || perfection || output) {
+    const trio: string[] = [];
+    if (style) trio.push(`style: ${style.toLowerCase()}`);
+    if (perfection) trio.push(`finish: ${perfection.toLowerCase()}`);
+    if (output) trio.push(`purpose: ${output.toLowerCase()}`);
+
+    if (trio.length) parts.push(`Overall: ${trio.join(" · ")}.`);
+  }
+
+  // Fallback if everything is skipped
+  if (parts.length === 0) {
+    return "You’re an enigma wrapped in a craft project — which is honestly a strong brand. Try answering a couple of questions and we’ll reflect it back here.";
+  }
+
+  // Make it one paragraph (not a list), and avoid double spaces.
+  return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
 export default function ResultPage() {
@@ -34,203 +115,127 @@ export default function ResultPage() {
     setPayload(safeParse(raw));
   }, []);
 
-  const reflected = useMemo<ReflectedAnswer[]>(() => {
+  const stats = useMemo(() => {
+    if (!payload) return { captured: 0, answered: 0, skipped: 0 };
+
+    const captured = QUIZ_FLOW.length;
+
+    const answered = QUIZ_FLOW.filter((qid) => (payload.responses[qid] ?? []).length > 0).length;
+    const skipped = captured - answered;
+
+    return { captured, answered, skipped };
+  }, [payload]);
+
+  const crafterStyle = useMemo(() => {
+    if (!payload) return "";
+    return buildCrafterStyle(payload);
+  }, [payload]);
+
+  // For debugging/testing: reflect answers (labels) in a hidden section
+  const reflected = useMemo(() => {
     if (!payload) return [];
-
-    const qById = new Map(QUESTIONS.map((q) => [q.id, q]));
-    const optionLabelById = new Map<string, string>();
-    for (const q of QUESTIONS) {
-      for (const o of q.options) optionLabelById.set(o.id, o.label);
-    }
-
-    const entries = Object.entries(payload.responses);
-
-    // Preserve a sensible order: use the QUESTIONS array order where possible
-    const orderIndex = new Map(QUESTIONS.map((q, idx) => [q.id, idx]));
-    entries.sort(([a], [b]) => (orderIndex.get(a) ?? 9999) - (orderIndex.get(b) ?? 9999));
-
-    return entries.map(([questionId, optionIds]) => {
-      const q = qById.get(questionId);
-      const labels = (optionIds ?? []).map((oid) => optionLabelById.get(oid) ?? `Unknown option (${oid})`);
-
+    return QUIZ_FLOW.map((qid) => {
+      const q = QUESTIONS.find((x) => x.id === qid);
+      const optionIds = payload.responses[qid] ?? [];
+      const labels = optionIds.map(labelForOptionId);
       return {
-        questionId,
-        questionPrompt: q?.prompt ?? `Unknown question (${questionId})`,
-        optionLabels: labels,
+        questionId: qid,
+        prompt: q?.prompt ?? qid,
+        labels,
       };
     });
   }, [payload]);
 
-  const totalQuestionsInPayload = payload ? Object.keys(payload.responses).length : 0;
-  const answeredCount = reflected.filter((r) => r.optionLabels.length > 0).length;
-  const skippedCount = reflected.filter((r) => r.optionLabels.length === 0).length;
-
   return (
-    <main
-      style={{
-        minHeight: "100dvh",
-        padding: 16,
-        maxWidth: 860,
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: 14,
-      }}
-    >
-      <div style={{ padding: 8, borderRadius: 10, background: "hotpink", color: "white", fontWeight: 800 }}>
-  RESULT PAGE v2 ✅
-</div>
-
-      
-      <header style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <h1 style={{ margin: 0, fontSize: 26, lineHeight: 1.15 }}>Your Craft Signals</h1>
-        <p style={{ margin: 0, opacity: 0.8 }}>
-          MVP mode: this page reflects your answers and shows placeholder recommendation tiles.
+    <main className={styles.main}>
+      <header className={styles.header}>
+        <h1 className={styles.h1}>Your Crafter Style</h1>
+        <p className={styles.subtle}>
+          MVP placeholder: for now we’re reflecting your vibe back — soon this will drive real recommendations.
         </p>
       </header>
 
       {!payload ? (
-        <div
-          style={{
-            padding: 14,
-            borderRadius: 14,
-            border: "1px solid rgba(0,0,0,0.15)",
-            background: "rgba(0,0,0,0.03)",
-          }}
-        >
+        <div className={styles.cardMuted}>
           No saved quiz answers found. Take the quiz first, or hit “Retake quiz”.
         </div>
       ) : (
         <>
-          <section
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 12,
-            }}
-          >
-            <StatCard label="Questions captured" value={totalQuestionsInPayload} />
-            <StatCard label="Answered" value={answeredCount} />
-            <StatCard label="Skipped" value={skippedCount} />
+          <section className={styles.grid}>
+            <StatCard label="Signals available" value={stats.captured} />
+            <StatCard label="Signals collected" value={stats.answered} />
+            <StatCard label="Skipped" value={stats.skipped} />
           </section>
 
-          <section style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <h2 style={{ margin: "6px 0 0", fontSize: 18 }}>What you told us</h2>
-
-            {reflected.length === 0 ? (
-              <div style={{ opacity: 0.8 }}>No responses recorded yet.</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {reflected.map((r) => (
-                  <div
-                    key={r.questionId}
-                    style={{
-                      padding: 14,
-                      borderRadius: 14,
-                      border: "1px solid rgba(0,0,0,0.15)",
-                      background: "white",
-                    }}
-                  >
-                    <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 6 }}>{r.questionPrompt}</div>
-
-                    {r.optionLabels.length === 0 ? (
-                      <div style={{ fontSize: 14, opacity: 0.7, fontStyle: "italic" }}>Skipped</div>
-                    ) : (
-                      <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
-                        {r.optionLabels.map((label, idx) => (
-                          <li key={`${r.questionId}_${idx}`} style={{ fontSize: 14 }}>
-                            {label}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+          <section className={styles.crafterStyle}>
+            <div className={styles.crafterKicker}>Crafter style</div>
+            <p className={styles.crafterSentence}>{crafterStyle}</p>
           </section>
 
-          <section style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <h2 style={{ margin: "6px 0 0", fontSize: 18 }}>Placeholder recommendations</h2>
-            <p style={{ margin: 0, opacity: 0.75 }}>
-              These are layout dummies — your real “secret sauce” suggestions will slot in here later.
+          <section>
+            <h2 className={styles.sectionTitle}>Placeholder recommendations</h2>
+            <p className={styles.subtle}>
+              These are layout dummies — your secret-sauce scoring will slot in here later.
             </p>
 
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                gap: 12,
-              }}
-            >
+            <div className={styles.tilesGrid}>
               <PlaceholderTile
-                title="Try: Mini watercolour postcards"
+                title="Mini watercolour postcards"
                 blurb="Low-setup, lounge-friendly, and a nice little giftable output."
                 tag="Quick win"
               />
               <PlaceholderTile
-                title="Try: Sashiko mending"
+                title="Sashiko mending"
                 blurb="Cosy, rhythmic stitching with a practical result (and mild smugness)."
                 tag="Useful + calming"
               />
               <PlaceholderTile
-                title="Try: Air-dry clay trinket dish"
-                blurb="Mess-light if you’re organised, and very satisfying in one sitting."
+                title="Air-dry clay trinket dish"
+                blurb="Satisfying in one sitting, and very ‘I made this!’."
                 tag="One session"
               />
               <PlaceholderTile
-                title="Try: Digital collage print"
+                title="Digital collage print"
                 blurb="If screens are allowed, this one’s pure vibes with minimal mess."
                 tag="Digital"
               />
             </div>
           </section>
 
-          <details
-            style={{
-              padding: 14,
-              borderRadius: 14,
-              border: "1px solid rgba(0,0,0,0.15)",
-              background: "rgba(0,0,0,0.03)",
-            }}
-          >
-            <summary style={{ cursor: "pointer", fontWeight: 600 }}>Debug payload (raw)</summary>
-            <pre style={{ whiteSpace: "pre-wrap", marginTop: 10 }}>
-              {JSON.stringify(payload, null, 2)}
-            </pre>
+          <details className={styles.details}>
+            <summary className={styles.summary}>Debug: what you told us (labels)</summary>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+              {reflected.map((r) => (
+                <div key={r.questionId} className={styles.card}>
+                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>{r.prompt}</div>
+                  {r.labels.length === 0 ? (
+                    <div style={{ fontSize: 14, opacity: 0.7, fontStyle: "italic" }}>Skipped</div>
+                  ) : (
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {r.labels.map((label, idx) => (
+                        <li key={`${r.questionId}_${idx}`} style={{ fontSize: 14 }}>
+                          {label}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </details>
+
+          <details className={styles.details}>
+            <summary className={styles.summary}>Debug: raw payload (IDs)</summary>
+            <pre className={styles.pre}>{JSON.stringify(payload, null, 2)}</pre>
           </details>
         </>
       )}
 
-      <footer style={{ marginTop: "auto", display: "flex", gap: 10 }}>
-        <Link
-          href="/quiz"
-          style={{
-            flex: 1,
-            padding: 14,
-            borderRadius: 14,
-            background: "black",
-            color: "white",
-            textDecoration: "none",
-            textAlign: "center",
-            fontWeight: 700,
-          }}
-        >
+      <footer className={styles.footer}>
+        <Link href="/quiz" className={styles.primaryLink}>
           Retake quiz
         </Link>
-
-        <Link
-          href="/"
-          style={{
-            flex: 1,
-            padding: 14,
-            borderRadius: 14,
-            background: "white",
-            border: "1px solid rgba(0,0,0,0.15)",
-            textDecoration: "none",
-            textAlign: "center",
-          }}
-        >
+        <Link href="/" className={styles.secondaryLink}>
           Home
         </Link>
       </footer>
@@ -240,57 +245,22 @@ export default function ResultPage() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div
-      style={{
-        padding: 14,
-        borderRadius: 14,
-        border: "1px solid rgba(0,0,0,0.15)",
-        background: "white",
-      }}
-    >
-      <div style={{ fontSize: 12, opacity: 0.7 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, marginTop: 4 }}>{value}</div>
+    <div className={styles.card}>
+      <div className={styles.statLabel}>{label}</div>
+      <div className={styles.statValue}>{value}</div>
     </div>
   );
 }
 
-function PlaceholderTile({
-  title,
-  blurb,
-  tag,
-}: {
-  title: string;
-  blurb: string;
-  tag: string;
-}) {
+function PlaceholderTile({ title, blurb, tag }: { title: string; blurb: string; tag: string }) {
   return (
-    <div
-      style={{
-        padding: 14,
-        borderRadius: 16,
-        border: "1px solid rgba(0,0,0,0.15)",
-        background: "linear-gradient(135deg, rgba(255,122,24,0.12), rgba(122,252,255,0.12))",
-      }}
-    >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
-        <div style={{ fontSize: 16, fontWeight: 800, lineHeight: 1.15 }}>{title}</div>
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            padding: "4px 10px",
-            borderRadius: 999,
-            background: "rgba(0,0,0,0.08)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {tag}
-        </span>
+    <div className={styles.tile}>
+      <div className={styles.tileTopRow}>
+        <div className={styles.tileTitle}>{title}</div>
+        <span className={styles.pill}>{tag}</span>
       </div>
-      <p style={{ margin: "10px 0 0", opacity: 0.85 }}>{blurb}</p>
-      <div style={{ marginTop: 12, fontSize: 12, opacity: 0.75 }}>
-        (Placeholder — will be driven by scoring later)
-      </div>
+      <p className={styles.tileBlurb}>{blurb}</p>
+      <div className={styles.tileNote}>(Placeholder — will be driven by scoring later)</div>
     </div>
   );
 }
