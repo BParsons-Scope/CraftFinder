@@ -14,7 +14,18 @@ export const QUESTIONS: QuestionDef[] = [
       { id: "where_plane", label: "On a plane" },
     ],
   },
-
+  {
+    id: "space",
+    prompt: "How much space",
+    type: "single",
+    skippable: true,
+    options: [
+      { id: "space_1", label: "In front of the TV" },
+      { id: "space_2", label: "In a dedicated craft space" },
+      { id: "space_3", label: "At a kitchen/dining table" },
+      { id: "space_4", label: "On a plane" },
+    ],
+  }
   // ...repeat for the rest
 ];
 
