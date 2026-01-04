@@ -111,6 +111,35 @@
   line-height: 1.15;
 }
 
+.tileImage {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 14px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background:
+    linear-gradient(135deg, rgba(255,122,24,0.18), rgba(122,252,255,0.18)),
+    repeating-linear-gradient(
+      45deg,
+      rgba(0,0,0,0.06),
+      rgba(0,0,0,0.06) 10px,
+      rgba(0,0,0,0.02) 10px,
+      rgba(0,0,0,0.02) 20px
+    );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.tileImageText {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  opacity: 0.65;
+  text-transform: uppercase;
+}
+
+
 .pill {
   font-size: 12px;
   font-weight: 700;
