@@ -1,4 +1,3 @@
-// app/result/page.tsx
 "use client";
 
 import Link from "next/link";
@@ -21,7 +20,7 @@ export default function ResultPage() {
       }
       const parsed = JSON.parse(raw) as { responses?: Record<string, string[]> };
       setPayload({ responses: parsed.responses ?? {} });
-    } catch (e) {
+    } catch {
       setError("Couldn’t read your quiz answers (storage was malformed).");
     }
   }, []);
