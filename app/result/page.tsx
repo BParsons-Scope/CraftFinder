@@ -255,6 +255,10 @@ function StatCard({ label, value }: { label: string; value: number }) {
 function PlaceholderTile({ title, blurb, tag }: { title: string; blurb: string; tag: string }) {
   return (
     <div className={styles.tile}>
+      <div className={styles.tileImage}>
+        <div className={styles.tileImageText}>Image placeholder</div>
+      </div>
+
       <div className={styles.tileTopRow}>
         <div className={styles.tileTitle}>{title}</div>
         <span className={styles.pill}>{tag}</span>
@@ -264,3 +268,4 @@ function PlaceholderTile({ title, blurb, tag }: { title: string; blurb: string; 
     </div>
   );
 }
+
