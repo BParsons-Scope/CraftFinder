@@ -1,7 +1,7 @@
 // app/api/recommend/route.ts
 import { NextResponse } from "next/server";
-import { QUESTIONS, QUIZ_FLOW } from "@/app/lib/quiz/questions";
-import type { ResponseMap } from "@/app/lib/quiz/types";
+import { QUESTIONS, QUIZ_FLOW } from "../../lib/quiz/questions";
+import type { ResponseMap } from "../../lib/quiz/types";
 
 type ScoringRules = {
   version: number;
