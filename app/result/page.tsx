@@ -9,7 +9,7 @@ import styles from "./result.module.css";
 type StoredPayload = {
   responses: Record<string, string[]>;
 };
-
+  
 function safeParse(raw: string | null): StoredPayload | null {
   if (!raw) return null;
   try {
